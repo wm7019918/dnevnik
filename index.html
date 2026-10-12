@@ -214,6 +214,15 @@ h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;font-weight:600;font-size:14px}
 .btn.prim{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(60px + env(safe-area-inset-top,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;z-index:9;max-width:calc(100% - 32px)}
+/* backup prompts */
+.bk{background:color-mix(in srgb,var(--warn) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.bk span{flex:1 1 160px;min-width:0}
+.bk .btn{padding:7px 12px;font-size:13px}
+.sheet{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:8}
+.sheet-in{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:16px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px}
+.sheet-in h3{margin:0;color:var(--good);font-size:14px}
+.sheet-in .big{font-family:var(--f-display);font-weight:700;font-size:30px;line-height:1}
+.sheet-in .btnrow .btn{flex:1}
 /* calendar & skips */
 .cal{display:grid;grid-template-columns:40px repeat(7,minmax(0,1fr));gap:4px}
 .cal .h{font-size:10px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em;padding-bottom:2px}
@@ -286,6 +295,12 @@ h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06
 </div></nav>
 
 <div class="toast" id="toast" hidden></div>
+<div class="sheet" id="bksheet" hidden><div class="wrap"><div class="sheet-in" role="dialog" aria-labelledby="bkT">
+  <h3 id="bkT">✓ Тренировка завершена</h3>
+  <div><span class="big" id="bkTon">0</span> <span class="hint">кг тоннаж</span></div>
+  <p class="hint">Сохрани копию: «Сохранить в Файлы» → папка (например, iCloud Drive / Дневник) → «Сохранить». В следующий раз iOS откроет ту же папку.</p>
+  <div class="btnrow"><button type="button" class="btn prim" data-sheet="save">Сохранить копию</button><button type="button" class="btn" data-sheet="later">Позже</button></div>
+</div></div></div>
 
 <script>
 (function(){
@@ -447,7 +462,14 @@ function defaultSession(){const a=sched().a;for(let k=0;k<a.length;k++)if(!a[k].
 
 /* ============ SAVE (on this device) ============ */
 let lastSaveOk=true;
+const LC="trainingDiary.lastChange";
+function lastChange(){try{return localStorage.getItem(LC)}catch(e){return null}}
+const hasData=()=>S.body.length>0||Object.values(S.weeks).some(x=>x&&x.entries&&Object.keys(x.entries).length);
+function needBackup(){const lc=lastChange(),lb=lastBackup();return !!lc&&hasData()&&(!lb||lc>lb)&&S.snooze!==lc}
+function bkBanner(){if(!needBackup())return "";const lb=lastBackup();
+  return `<div class="bk"><span>${lb?"Есть изменения после копии от "+dm(new Date(lb))+".":"Резервной копии ещё нет."} Сохрани её в «Файлы».</span><button type="button" class="btn prim" data-act="backup">Сохранить копию</button><button type="button" class="btn" data-act="bklater">Позже</button></div>`}
 function scheduleSave(){
+  try{localStorage.setItem(LC,new Date().toISOString())}catch(e){}
   SCH=null;
   try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body,done:S.done}));lastSaveOk=true}
   catch(e){lastSaveOk=false;toast("Не удалось сохранить: память браузера недоступна")}
@@ -495,7 +517,7 @@ function vSession(){
   let cards="";
   if(w<=4)cards+=`<div class="ex warm"><div class="ex-t"><div class="ex-name">Разминка — обязательна всегда</div><div class="note">3 уровня, без разминки к весам не подходим</div></div><a class="vid" href="${WARM}" target="_blank" rel="noopener">▶ видео</a></div>`;
   ex.forEach((x,i)=>{cards+=exCard(w,d,x,i)});
-  return `<section class="sess-head">
+  return bkBanner()+`<section class="sess-head">
     <div class="weeknav">
       <button class="iconbtn" type="button" data-wk="-1" aria-label="Предыдущая неделя" ${w<=1?"disabled":""}><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
       <h1>Неделя ${w}<small>Тренировка ${d+1} из 4 · ${WDF[sdt.getDay()]}, ${dmy(sdt)}</small></h1>
@@ -603,7 +625,7 @@ function vWeight(){
       return `<div class="wrow"><span class="dt">${dmy(dt)}<small>${WD[dt.getDay()]}</small></span><span class="kg">${fkg(x.kg)}</span><span class="df">${prev?fsign(x.kg-prev.kg):""}</span><button type="button" class="x" data-wdel="${x.d}" aria-label="Удалить запись ${dmy(dt)}">×</button></div>`}).join("");
     hist=`<section class="card"><h2>История</h2>${rows}</section>`;
   }
-  return form+kp+chart+hist;
+  return bkBanner()+form+kp+chart+hist;
 }
 function weightChart(){
   const all=S.body;
@@ -709,7 +731,7 @@ function vSettings(){
     <div class="exlist">${rows}</div>
     <div class="btnrow" style="margin-top:10px"><button type="button" class="btn" data-act="resetNames">Вернуть исходные названия</button></div></section>
   <section class="card"><h2>Данные</h2>
-    <p class="hint" style="margin-bottom:10px">Записи хранятся только в этом iPhone, внутри приложения. Раз в пару недель сохраняй резервную копию в «Файлы» или iCloud Drive. Из копии всё восстанавливается, в том числе на новом телефоне.</p>
+    <p class="hint" style="margin-bottom:10px">Записи хранятся только в этом iPhone, внутри приложения. После каждой завершённой тренировки приложение предложит сохранить копию в «Файлы». Лучше выбрать папку в iCloud Drive: копии будут и на других устройствах. Из копии восстанавливается всё, в том числе на новом телефоне.</p>
     <div class="btnrow">
       <button type="button" class="btn prim" data-act="backup">Сохранить резервную копию</button>
       <button type="button" class="btn" data-act="restore">Восстановить из копии</button>
@@ -754,6 +776,7 @@ view.addEventListener("click",e=>{
     if(b.dataset.act==="csv")exportCsv();
     if(b.dataset.act==="backup")exportBackup();
     if(b.dataset.act==="wsave")saveWeight();
+    if(b.dataset.act==="bklater"){S.snooze=lastChange();render()}
     if(b.dataset.act==="restore")$("#restoreFile").click();
     if(b.dataset.act==="wipe"){
       if(b.dataset.arm){S.weeks={};S.done={};scheduleSave();delete b.dataset.arm;render();toast("Все записи удалены")}
@@ -776,7 +799,7 @@ view.addEventListener("change",e=>{const t=e.target;
 });
 function refreshHint(){const h=view.querySelector(".form .hint.full");if(h)h.firstChild.textContent="Сейчас круги в адаптации: "+[1,2,3,4].map(circuits).join(" → ")+". "}
 function setEntry(id,e){
-  const w=S.w,wasDone=sessFilled(w,S.d),cur=sched().a[(w-1)*4+S.d].date;
+  const w=S.w,wasDone=sessFilled(w,S.d),cur=sched().a[(w-1)*4+S.d].date,st0=sessStat(w,S.d);
   S.weeks[w]=S.weeks[w]||{entries:{}};
   const entries=Object.assign({},S.weeks[w].entries);
   const clean={};["w","s","r"].forEach(k=>{const v=num(e[k]);if(v!=null)clean[k]=v});if(e.n&&String(e.n).trim())clean.n=String(e.n).slice(0,300);
@@ -787,7 +810,11 @@ function setEntry(id,e){
   if(!nowDone)delete S.done[sk];
   scheduleSave(wid(w));
   if(nowDone!==wasDone)softRender();
+  const st1=sessStat(w,S.d);if(st1.n===st1.of&&st0.n<st0.of)showDoneSheet(st1.t);
 }
+function showDoneSheet(t){$("#bkTon").textContent=fmt(t);$("#bksheet").hidden=false}
+document.getElementById("bksheet").addEventListener("click",e=>{const b=e.target.closest("[data-sheet]");if(!b)return;
+  if(b.dataset.sheet==="save")exportBackup();else{$("#bksheet").hidden=true;S.snooze=lastChange();softRender()}});
 function onField(inp){
   const card=inp.closest("[data-ex]"),id=card.dataset.ex;
   const e0=Object.assign({},entry(S.w,S.d,id)||{});
@@ -843,7 +870,7 @@ async function exportBackup(){
   const today=new Date();
   const body=JSON.stringify({app:"trainingDiary",v:1,exported:today.toISOString(),settings:S.settings,weeks:S.weeks,body:S.body,done:S.done},null,1);
   const ok=await shareFile("Дневник_копия_"+isoDay(today)+".json",body,"application/json");
-  if(ok){try{localStorage.setItem(BK,today.toISOString())}catch(e){}if(S.tab==="settings")render();toast("Копия готова — сохрани её в «Файлы»")}
+  if(ok){try{localStorage.setItem(BK,new Date().toISOString())}catch(e){}$("#bksheet").hidden=true;softRender();toast("Копия сохранена")}
 }
 function importBackup(file){
   const rd=new FileReader();
