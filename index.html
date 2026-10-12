@@ -239,6 +239,7 @@ h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06
 .facts b{font-family:var(--f-display);font-size:20px}
 .facts b.bad{color:var(--danger)}
 /* body weight */
+.wdays{gap:6px;margin:4px 0}.wdays .chip{min-width:40px}
 .wform{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
 .wform .fld input[type=date]{font-family:var(--f-body);font-size:16px;font-weight:500;padding:4px 0}
 .wform .btn{grid-column:1/-1;padding:12px}
@@ -347,7 +348,7 @@ const PERIODS=[{n:"Адаптация",w0:1,kg:10},{n:"Этап 1",w0:5,kg:15},{
 const WEEKS=20;
 const LIFTS=[["x01","x28"],["x07","x07"],["x08","x36"],["x20","x20"],[null,"x29"],["x13","x37"],["x03","x03"]];
 const WARM=YT("0qhvu59LkW0");
-const DEF_SET={start:"2026-10-05",bw:null,c0:2,cInc:1,cMax:4,r12:20,r34:15,names:{},bwf:{}};
+const DEF_SET={start:"2026-10-05",days:[2,4,6,0],bw:null,c0:2,cInc:1,cMax:4,r12:20,r34:15,names:{},bwf:{}};
 
 /* ============ STATE ============ */
 const S={settings:JSON.parse(JSON.stringify(DEF_SET)),weeks:{},body:[],done:{},wr:90,tab:"session",w:1,d:0,mode:"init"};
@@ -366,11 +367,21 @@ const fmt=(n,d=0)=>n==null?"–":n.toLocaleString("ru-RU",{maximumFractionDigits
 const fmtIn=n=>n==null?"":String(n).replace(".",",").replace("-","−");
 const pad=n=>String(n).padStart(2,"0");
 function parseDate(s){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||"");return m?new Date(+m[1],m[2]-1,+m[3]):new Date(2026,9,5)}
-/* Schedule: 80 sessions in order are laid onto training slots (Пн, Вт, Чт, Сб).
+/* Schedule: 80 sessions in order are laid onto training slots (fixed weekdays, default Вт, Чт, Сб, Вс).
    A slot that has passed with its session not logged becomes a skip (ПРОПУСК) and
    that session plus all later ones move to the next slot. A logged session sits on
    the date it was done (S.done), or on its original date for older records. */
-function slotIso(j){const x=parseDate(S.settings.start);x.setDate(x.getDate()+Math.floor(j/4)*7+DAYS[j%4].off);return isoDay(x)}
+const trainDays=()=>{const d=Array.isArray(S.settings.days)?S.settings.days.filter(x=>x>=0&&x<=6):[];return d.length?d:DEF_SET.days};
+let SLOTS=null;
+function slotIso(j){
+  const k=S.settings.start+"|"+trainDays().join(",");
+  if(!SLOTS||SLOTS.k!==k)SLOTS={k,list:[],cur:parseDate(S.settings.start)};
+  const td=trainDays();
+  while(SLOTS.list.length<=j){const x=SLOTS.cur;if(td.includes(x.getDay()))SLOTS.list.push(isoDay(x));x.setDate(x.getDate()+1)}
+  return SLOTS.list[j];
+}
+const WS=["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+const daysText=()=>{const o=[1,2,3,4,5,6,0].filter(x=>trainDays().includes(x)).map(x=>WS[x]);return o.length>1?o.slice(0,-1).join(", ")+" и "+o[o.length-1]:o[0]};
 const legacyIso=(w,d)=>slotIso((w-1)*4+d);
 const sessKey=(w,d)=>w+"_"+d;
 function sessFilled(w,d){const wk=S.weeks[w];if(!wk||!wk.entries)return false;const pre=d+"_";for(const k in wk.entries){if(k.startsWith(pre)&&filled(wk.entries[k]))return true}return false}
@@ -537,7 +548,7 @@ function vPlan(){
   const doneN=sc.a.filter(x=>x.done).length,skipN=sc.skips.size;
   const endIso=sc.a[sc.a.length-1].date,planEnd=legacyIso(WEEKS,3),shift=dayDiff(endIso,planEnd);
   let out=`<section class="card"><h2>Календарь</h2>
-    <p class="hint">80 тренировок идут по порядку в Пн, Вт, Чт и Сб. Если тренировка не внесена в свой день, день помечается «ПРОПУСК», а она и все следующие сдвигаются на ближайший тренировочный день.</p>
+    <p class="hint">80 тренировок идут по порядку в закреплённые дни: ${daysText()}. Если тренировка не внесена в свой день, день помечается «ПРОПУСК», а она и все следующие переносятся на следующий закреплённый день.</p>
     <div class="facts"><div><small>Выполнено</small><b>${doneN}<span class="hint"> / 80</span></b></div><div><small>Пропусков</small><b class="${skipN?"bad":""}">${skipN}</b></div><div><small>Финиш</small><b>${dm(isoToDate(endIso))}</b></div></div>
     <p class="hint" style="margin-top:8px">${shift>0?`Окончание сдвинулось на ${shift} дн.: по плану было ${dmy(isoToDate(planEnd))}.`:`Окончание программы — ${dmy(isoToDate(endIso))}.`} Старт — ${dmy(parseDate(S.settings.start))} (меняется в настройках).</p>
     <div class="legend" style="margin-top:10px"><span><i style="background:color-mix(in srgb,var(--good) 30%,var(--surface))"></i>выполнено</span><span><i style="background:color-mix(in srgb,var(--danger) 20%,var(--surface))"></i>пропуск</span><span><i style="outline:2px solid var(--accent)"></i>сегодня</span><span>«2·1» — неделя 2, тренировка 1</span></div></section>`;
@@ -558,7 +569,7 @@ function vPlan(){
       }else if(sc.skips.has(iso)){
         grid+=`<span class="cc skip"><span>${x.getDate()}</span><span class="l">ПРОПУСК</span></span>`;
       }else{
-        const train=[0,1,3,5].includes(i);
+        const train=trainDays().includes(x.getDay());
         grid+=`<span class="cc ${train?"":"rest"} ${isToday?"today":""} ${past&&train?"past":""}"><span>${x.getDate()}</span><span class="l">&nbsp;</span></span>`;
       }
     }
@@ -683,7 +694,9 @@ function vSettings(){
     <input type="text" id="nm_${id}" data-name="${id}" value="${esc(exName(id))}" class="${ch?"changed":""}" aria-label="Название упражнения ${i+1}">
     <label class="tog"><input type="checkbox" data-bwf="${id}" ${isBW(id)?"checked":""}>вес тела</label></div>`}).join("");
   return `<section class="card"><h2>Программа</h2><div class="form">
-    <label class="inp full">Дата старта (понедельник)<input type="date" id="st_start" data-set="start" value="${esc(s.start)}"></label>
+    <label class="inp full">Дата старта<input type="date" id="st_start" data-set="start" value="${esc(s.start)}"></label>
+    <div class="inp full">Дни тренировок<div class="btnrow wdays">${[1,2,3,4,5,6,0].map(x=>`<button type="button" class="chip ${trainDays().includes(x)?"prim":""}" data-wday="${x}" aria-pressed="${trainDays().includes(x)}">${WS[x]}</button>`).join("")}</div>
+      <span>Сейчас: ${daysText()} (${trainDays().length} в неделю). В программе 4 тренировки в неделю. Пропущенная тренировка переносится на следующий выбранный день.</span></div>
     <label class="inp full">Вес тела, кг — если во вкладке «Вес» нет записей<input id="st_bw" data-set="bw" inputmode="decimal" placeholder="например, 85" value="${esc(fmtIn(s.bw))}"></label>
     <label class="inp">Повторы, нед. 1–2 адаптации<input id="st_r12" data-set="r12" inputmode="numeric" value="${esc(s.r12)}"></label>
     <label class="inp">Повторы, нед. 3–4 адаптации<input id="st_r34" data-set="r34" inputmode="numeric" value="${esc(s.r34)}"></label>
@@ -722,6 +735,9 @@ view.addEventListener("click",e=>{
   if((b=t.closest("[data-day]"))){S.d=+b.dataset.day;render();return}
   if((b=t.closest("[data-go]"))){const[w,d]=b.dataset.go.split("_");S.w=+w;S.d=+d;S.tab="session";render();window.scrollTo(0,0);return}
   if((b=t.closest("[data-rest]"))){startTimer(+b.dataset.rest);return}
+  if((b=t.closest("[data-wday]"))){const x=+b.dataset.wday;let d=trainDays().slice();
+    if(d.includes(x)){if(d.length===1){toast("Нужен хотя бы один день");return}d=d.filter(y=>y!==x)}else d.push(x);
+    S.settings.days=d;scheduleSave();render();toast("Дни тренировок: "+daysText());return}
   if((b=t.closest("[data-wr]"))){S.wr=+b.dataset.wr;render();return}
   if((b=t.closest("[data-wdel]"))){
     if(b.dataset.arm){const d=b.dataset.wdel;S.body=S.body.filter(x=>x.d!==d);scheduleSave();render();toast("Запись удалена")}
