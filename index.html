@@ -214,6 +214,30 @@ h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;font-weight:600;font-size:14px}
 .btn.prim{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(60px + env(safe-area-inset-top,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;z-index:9;max-width:calc(100% - 32px)}
+/* calendar & skips */
+.cal{display:grid;grid-template-columns:40px repeat(7,minmax(0,1fr));gap:4px}
+.cal .h{font-size:10px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em;padding-bottom:2px}
+.cal .rl{font-size:10px;color:var(--muted);display:flex;align-items:center;font-variant-numeric:tabular-nums}
+.cc{min-height:46px;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:3px 1px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;font-size:10px;color:var(--muted);min-width:0;font-family:var(--f-body)}
+.cc .l{font-family:var(--f-display);font-weight:700;font-size:13px;color:var(--ink);display:flex;align-items:center;gap:3px;white-space:nowrap}
+.cc .l i{width:6px;height:6px;border-radius:50%;display:inline-block}
+.cc.rest{background:transparent;border-style:dashed;opacity:.5}
+.cc.done{background:color-mix(in srgb,var(--good) 18%,var(--surface));border-color:color-mix(in srgb,var(--good) 50%,transparent)}
+.cc.skip{background:color-mix(in srgb,var(--danger) 10%,var(--surface));border-color:color-mix(in srgb,var(--danger) 45%,transparent)}
+.cc.skip .l{color:var(--danger);font-family:var(--f-body);font-size:8px;font-weight:700;letter-spacing:0}
+.cc.today{outline:2px solid var(--accent);outline-offset:1px}
+.cc.now{box-shadow:inset 0 0 0 2px var(--ink)}
+.cc.past{opacity:.75}
+.status{grid-column:1/-1;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+.status .st-done{color:var(--good);font-weight:600}
+.status .st-moved{color:var(--warn);font-weight:600}
+.status .st-today{color:var(--accent);font-weight:600}
+.status input[type=date]{border:1px solid var(--line);background:var(--field);border-radius:8px;padding:4px 6px;font-size:15px;color:var(--ink)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.facts div{background:var(--field);border-radius:10px;padding:8px}
+.facts small{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.facts b{font-family:var(--f-display);font-size:20px}
+.facts b.bad{color:var(--danger)}
 /* body weight */
 .wform{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
 .wform .fld input[type=date]{font-family:var(--f-body);font-size:16px;font-weight:500;padding:4px 0}
@@ -326,10 +350,11 @@ const WARM=YT("0qhvu59LkW0");
 const DEF_SET={start:"2026-10-05",bw:null,c0:2,cInc:1,cMax:4,r12:20,r34:15,names:{},bwf:{}};
 
 /* ============ STATE ============ */
-const S={settings:JSON.parse(JSON.stringify(DEF_SET)),weeks:{},body:[],wr:90,tab:"session",w:1,d:0,mode:"init"};
+const S={settings:JSON.parse(JSON.stringify(DEF_SET)),weeks:{},body:[],done:{},wr:90,tab:"session",w:1,d:0,mode:"init"};
 const LS="trainingDiary.app.v1";
-function lsLoad(){try{const j=JSON.parse(localStorage.getItem(LS)||"null");if(j){Object.assign(S.settings,j.settings||{});S.weeks=j.weeks||{};S.body=cleanBody(j.body);}}catch(e){}}
-function lsSave(){try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body}))}catch(e){}}
+function lsLoad(){try{const j=JSON.parse(localStorage.getItem(LS)||"null");if(j){Object.assign(S.settings,j.settings||{});S.weeks=j.weeks||{};S.body=cleanBody(j.body);S.done=cleanDone(j.done);}}catch(e){}}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body,done:S.done}))}catch(e){}}
+function cleanDone(o){const r={};if(o&&typeof o==="object")Object.keys(o).forEach(k=>{if(/^\d+_\d$/.test(k)&&/^\d{4}-\d{2}-\d{2}$/.test(o[k]))r[k]=o[k]});return r}
 function cleanBody(a){if(!Array.isArray(a))return [];const m={};a.forEach(x=>{if(x&&/^\d{4}-\d{2}-\d{2}$/.test(x.d)&&isFinite(+x.kg)&&+x.kg>0)m[x.d]=+x.kg});return Object.keys(m).sort().map(d=>({d,kg:m[d]}))}
 lsLoad();
 
@@ -341,7 +366,38 @@ const fmt=(n,d=0)=>n==null?"–":n.toLocaleString("ru-RU",{maximumFractionDigits
 const fmtIn=n=>n==null?"":String(n).replace(".",",").replace("-","−");
 const pad=n=>String(n).padStart(2,"0");
 function parseDate(s){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||"");return m?new Date(+m[1],m[2]-1,+m[3]):new Date(2026,9,5)}
-function dateOf(w,d){const x=parseDate(S.settings.start);x.setDate(x.getDate()+(w-1)*7+DAYS[d].off);return x}
+/* Schedule: 80 sessions in order are laid onto training slots (Пн, Вт, Чт, Сб).
+   A slot that has passed with its session not logged becomes a skip (ПРОПУСК) and
+   that session plus all later ones move to the next slot. A logged session sits on
+   the date it was done (S.done), or on its original date for older records. */
+function slotIso(j){const x=parseDate(S.settings.start);x.setDate(x.getDate()+Math.floor(j/4)*7+DAYS[j%4].off);return isoDay(x)}
+const legacyIso=(w,d)=>slotIso((w-1)*4+d);
+const sessKey=(w,d)=>w+"_"+d;
+function sessFilled(w,d){const wk=S.weeks[w];if(!wk||!wk.entries)return false;const pre=d+"_";for(const k in wk.entries){if(k.startsWith(pre)&&filled(wk.entries[k]))return true}return false}
+let SCH=null;
+function sched(){
+  const today=isoDay(new Date());
+  if(SCH&&SCH.today===today)return SCH;
+  const a=[],sk=[];let j=0;
+  for(let k=0;k<WEEKS*4;k++){
+    const w=Math.floor(k/4)+1,d=k%4;
+    if(sessFilled(w,d)){
+      const D=S.done[sessKey(w,d)]||legacyIso(w,d);
+      while(slotIso(j)<D){sk.push(slotIso(j));j++}
+      a.push({date:D,done:true});
+      while(slotIso(j)<=D)j++;
+    }else{
+      while(slotIso(j)<today){sk.push(slotIso(j));j++}
+      a.push({date:slotIso(j),done:false});j++;
+    }
+  }
+  const byDate={};a.forEach((x,k)=>{(byDate[x.date]=byDate[x.date]||[]).push(k)});
+  const skips=new Set(sk.filter(d=>!byDate[d]));
+  SCH={today,a,skips,byDate};return SCH;
+}
+function dateOf(w,d){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(sched().a[(w-1)*4+d].date);return new Date(+m[1],m[2]-1,+m[3])}
+const WDF=["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
 const dm=x=>pad(x.getDate())+"."+pad(x.getMonth()+1);
 const dmy=x=>dm(x)+"."+x.getFullYear();
 const isoDay=x=>x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate());
@@ -376,16 +432,13 @@ function prevOf(w,d,id){
   for(let ww=w-1;ww>=1;ww--){for(let dd=3;dd>=0;dd--){const e=entry(ww,dd,id);if(filled(e)||num(e&&e.w)!=null)return{w:ww,d:dd,e}}}
   return null;
 }
-function defaultSession(){
-  const today=new Date();today.setHours(0,0,0,0);
-  for(let w=1;w<=WEEKS;w++)for(let d=0;d<4;d++){if(dateOf(w,d)>=today)return{w,d}}
-  return{w:WEEKS,d:3};
-}
+function defaultSession(){const a=sched().a;for(let k=0;k<a.length;k++)if(!a[k].done)return{w:Math.floor(k/4)+1,d:k%4};return{w:WEEKS,d:3}}
 
 /* ============ SAVE (on this device) ============ */
 let lastSaveOk=true;
 function scheduleSave(){
-  try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body}));lastSaveOk=true}
+  SCH=null;
+  try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body,done:S.done}));lastSaveOk=true}
   catch(e){lastSaveOk=false;toast("Не удалось сохранить: память браузера недоступна")}
   setSync();
 }
@@ -420,15 +473,21 @@ function vSession(){
   if(w<=4)mode=`<strong>по ${adaptReps(w)} повторений · ${circuits(w)} круга по плану.</strong> Упражнения подряд, отдых 60–90 с; между кругами 3–5 мин. «Подх.» — сколько кругов сделал.`;
   else{const wi=(w-5)%4+1;mode=`Неделя ${wi} из 4 в этапе: <strong>${wi%2===0?"без последнего подхода":"как написано"}</strong>.`+(wi%2===0?" В плане уже на 1 подход меньше.":"")}
   const daysH=DAYS.map((dd,i)=>{const s=sessStat(w,i),dt=dateOf(w,i);
-    return `<button type="button" data-day="${i}" aria-pressed="${i===d}" class="${isoDay(dt)===todayIso?"today":""}">
-      ${s.n?`<i class="dot ${s.n===s.of?"full":"part"}"></i>`:""}<span class="d">${dd.s}</span><span class="dt">${dm(dt)}</span></button>`}).join("");
+    return `<button type="button" data-day="${i}" aria-pressed="${i===d}" aria-label="Тренировка ${i+1}, ${WDF[dt.getDay()]} ${dm(dt)}" class="${isoDay(dt)===todayIso?"today":""}">
+      ${s.n?`<i class="dot ${s.n===s.of?"full":"part"}"></i>`:""}<span class="d">${WD[dt.getDay()]}</span><span class="dt">${dm(dt)}</span></button>`}).join("");
+  const sa=sched().a[(w-1)*4+d],sdt=dateOf(w,d),orig=legacyIso(w,d);
+  let status;
+  if(sa.done)status=`<span class="st-done">✓ Выполнена</span><input type="date" id="doneDate" data-done value="${sa.date}" max="${todayIso}" aria-label="Дата выполнения">`;
+  else if(sa.date===todayIso)status=`<span class="st-today">Тренировка на сегодня</span>${sa.date!==orig?`<span class="hint">перенесена, по плану было ${dm(isoToDate(orig))}</span>`:""}`;
+  else if(sa.date!==orig)status=`<span class="st-moved">Перенесена на ${dm(sdt)}</span><span class="hint">по плану было ${dm(isoToDate(orig))} — из-за пропусков</span>`;
+  else status=`<span class="hint">Запланирована на ${WDF[sdt.getDay()]}, ${dm(sdt)}</span>`;
   let cards="";
   if(w<=4)cards+=`<div class="ex warm"><div class="ex-t"><div class="ex-name">Разминка — обязательна всегда</div><div class="note">3 уровня, без разминки к весам не подходим</div></div><a class="vid" href="${WARM}" target="_blank" rel="noopener">▶ видео</a></div>`;
   ex.forEach((x,i)=>{cards+=exCard(w,d,x,i)});
   return `<section class="sess-head">
     <div class="weeknav">
       <button class="iconbtn" type="button" data-wk="-1" aria-label="Предыдущая неделя" ${w<=1?"disabled":""}><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <h1>Неделя ${w}<small>${DAYS[d].l}, ${dmy(dateOf(w,d))}</small></h1>
+      <h1>Неделя ${w}<small>Тренировка ${d+1} из 4 · ${WDF[sdt.getDay()]}, ${dmy(sdt)}</small></h1>
       <button class="iconbtn" type="button" data-wk="1" aria-label="Следующая неделя" ${w>=WEEKS?"disabled":""}><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
     </div>
     <div class="days">${daysH}</div>
@@ -437,6 +496,7 @@ function vSession(){
     <div><div class="lbl">Тоннаж тренировки</div><div class="big" id="sumT">${fmt(st.t)}<span>кг</span></div></div>
     <div class="cnt"><div class="lbl">Упражнений</div><div class="big num" id="sumN" style="font-size:28px">${st.n}/${st.of}</div></div>
     <div class="bar"><i id="sumBar" style="width:${Math.round(st.n/st.of*100)}%"></i></div>
+    <div class="status">${status}</div>
     <div class="mode">${p===0?"":`<strong>${PERIODS[p].n}.</strong> `}${STAGE_FOCUS(w,d)} ${mode}</div>
   </section>
   ${cards}
@@ -450,7 +510,7 @@ function exCard(w,d,x,i){
   const e=entry(w,d,x.id)||{},t=ton(e,x.id,w,d),bw=isBW(x.id),url=EX[x.id][2];
   const pr=prevOf(w,d,x.id);
   const ph=x.plan||{};
-  const prevTxt=pr?`Прошлый раз (нед. ${pr.w}, ${DAYS[pr.d].s}): ${pr.e.w!=null&&pr.e.w!==""?fmtIn(pr.e.w)+" кг":"без веса"}${filled(pr.e)?" · "+fmtIn(pr.e.s)+"×"+fmtIn(pr.e.r):""}`:"";
+  const prevTxt=pr?`Прошлый раз (нед. ${pr.w}, ${dm(dateOf(pr.w,pr.d))}): ${pr.e.w!=null&&pr.e.w!==""?fmtIn(pr.e.w)+" кг":"без веса"}${filled(pr.e)?" · "+fmtIn(pr.e.s)+"×"+fmtIn(pr.e.r):""}`:"";
   return `<article class="ex ${filled(e)?"done":""}" data-ex="${x.id}">
     <div class="ex-h"><span class="ex-n">${i+1}</span><div class="ex-t">
       <div class="ex-name">${x.fin?"Финишер: ":""}${esc(exName(x.id))}</div>
@@ -473,25 +533,39 @@ function exCard(w,d,x,i){
 }
 
 function vPlan(){
-  const today=isoDay(new Date());let out=`<div class="card"><h2>План на 20 недель</h2><p class="hint">Тренировки в Пн, Вт, Чт, Сб. Нажми на день, чтобы открыть тренировку. Старт — ${dmy(parseDate(S.settings.start))} (меняется в настройках).</p>
-    <div class="legend" style="margin-top:10px"><span><i style="background:color-mix(in srgb,var(--good) 30%,var(--surface))"></i>выполнено</span><span><i style="background:color-mix(in srgb,var(--warn) 25%,var(--surface))"></i>частично</span><span><i style="outline:2px solid var(--accent)"></i>открыта</span></div></div>`;
-  PERIODS.forEach((P,p)=>{
-    let t=0;for(let w=P.w0;w<P.w0+4;w++)t+=weekTon(w);
-    out+=`<section class="card pblock"><div class="pblock-h">${plate(p)}<span class="hint">нед. ${P.w0}–${P.w0+3}${t?" · "+fmt(t)+" кг":""}</span></div>`;
-    if(p===0)out+=`<p class="hint">Круговая Full Body: 4 блока. Круги: ${[1,2,3,4].map(circuits).join(" → ")}.</p>`;
-    for(let w=P.w0;w<P.w0+4;w++){
-      const wi=(w-P.w0)+1;
-      out+=`<div class="prow"><div class="wk">Нед. ${w}<small>${p===0?(w<=2?adaptReps(w)+" повт.":adaptReps(w)+" повт."):(wi%2===0?"−1 подход":"как написано")}</small></div>`;
-      for(let d=0;d<4;d++){const s=sessStat(w,d),dt=dateOf(w,d);
-        const cls=s.n===0?"":(s.n===s.of?"full":"part");
-        out+=`<button type="button" class="cell ${cls} ${w===S.w&&d===S.d?"now":""}" data-go="${w}_${d}" aria-label="Неделя ${w}, ${DAYS[d].l}"><b>${DAYS[d].s} ${dm(dt)}</b>${s.t?fmt(s.t/1000,1)+" т":isoDay(dt)===today?"сегодня":"&nbsp;"}</button>`}
-      out+=`</div>`;
+  const sc=sched(),today=isoDay(new Date());
+  const doneN=sc.a.filter(x=>x.done).length,skipN=sc.skips.size;
+  const endIso=sc.a[sc.a.length-1].date,planEnd=legacyIso(WEEKS,3),shift=dayDiff(endIso,planEnd);
+  let out=`<section class="card"><h2>Календарь</h2>
+    <p class="hint">80 тренировок идут по порядку в Пн, Вт, Чт и Сб. Если тренировка не внесена в свой день, день помечается «ПРОПУСК», а она и все следующие сдвигаются на ближайший тренировочный день.</p>
+    <div class="facts"><div><small>Выполнено</small><b>${doneN}<span class="hint"> / 80</span></b></div><div><small>Пропусков</small><b class="${skipN?"bad":""}">${skipN}</b></div><div><small>Финиш</small><b>${dm(isoToDate(endIso))}</b></div></div>
+    <p class="hint" style="margin-top:8px">${shift>0?`Окончание сдвинулось на ${shift} дн.: по плану было ${dmy(isoToDate(planEnd))}.`:`Окончание программы — ${dmy(isoToDate(endIso))}.`} Старт — ${dmy(parseDate(S.settings.start))} (меняется в настройках).</p>
+    <div class="legend" style="margin-top:10px"><span><i style="background:color-mix(in srgb,var(--good) 30%,var(--surface))"></i>выполнено</span><span><i style="background:color-mix(in srgb,var(--danger) 20%,var(--surface))"></i>пропуск</span><span><i style="outline:2px solid var(--accent)"></i>сегодня</span><span>«2·1» — неделя 2, тренировка 1</span></div></section>`;
+  const s0=parseDate(S.settings.start);s0.setDate(s0.getDate()-((s0.getDay()+6)%7));
+  const last=isoToDate(endIso>today?endIso:today);
+  let grid=`<div class="cal"><span></span>${["пн","вт","ср","чт","пт","сб","вс"].map(x=>`<span class="h">${x}</span>`).join("")}`;
+  let curP=-1;
+  for(const m=new Date(s0);m<=last;m.setDate(m.getDate()+7)){
+    // period header when a new period starts in this row
+    let rowP=null;for(let i=0;i<7;i++){const x=new Date(m);x.setDate(x.getDate()+i);const ks=sc.byDate[isoDay(x)];if(ks){rowP=periodOf(Math.floor(ks[0]/4)+1);break}}
+    if(rowP!=null&&rowP>curP){curP=rowP;grid+=`<div style="grid-column:1/-1;margin:8px 0 2px">${plate(rowP)}</div>`}
+    grid+=`<span class="rl">${dm(m)}</span>`;
+    for(let i=0;i<7;i++){
+      const x=new Date(m);x.setDate(x.getDate()+i);const iso=isoDay(x),ks=sc.byDate[iso]||[];
+      const isToday=iso===today,past=iso<today;
+      if(ks.length){const k=ks[0],w=Math.floor(k/4)+1,d=k%4,done=sc.a[k].done;
+        grid+=`<button type="button" class="cc ${done?"done":""} ${isToday?"today":""} ${w===S.w&&d===S.d?"now":""}" data-go="${w}_${d}" aria-label="Неделя ${w}, тренировка ${d+1}, ${dm(x)}${done?", выполнена":""}"><span>${x.getDate()}</span><span class="l">${done?"✓":`<i style="background:var(--p${periodOf(w)})"></i>`}${w}·${d+1}${ks.length>1?"+":""}</span></button>`;
+      }else if(sc.skips.has(iso)){
+        grid+=`<span class="cc skip"><span>${x.getDate()}</span><span class="l">ПРОПУСК</span></span>`;
+      }else{
+        const train=[0,1,3,5].includes(i);
+        grid+=`<span class="cc ${train?"":"rest"} ${isToday?"today":""} ${past&&train?"past":""}"><span>${x.getDate()}</span><span class="l">&nbsp;</span></span>`;
+      }
     }
-    out+=`</section>`;
-  });
-  return out;
+  }
+  grid+=`</div>`;
+  return out+`<section class="card">${grid}</section>`;
 }
-
 const fkg=n=>n==null?"–":n.toLocaleString("ru-RU",{minimumFractionDigits:1,maximumFractionDigits:1});
 const fsign=(n,d=1)=>n==null?"–":(n>0?"+":n<0?"−":"±")+fmt(Math.abs(n),d);
 const isoToDate=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s);return new Date(+m[1],m[2]-1,+m[3])};
@@ -563,7 +637,7 @@ function vProgress(){
   const best=Math.max(...wt);
   const k=`<div class="kpis">
     <div class="kpi"><small>Тоннаж всего</small><b>${total?fmt(total/1000,1):"0"}<span> т</span></b></div>
-    <div class="kpi"><small>Тренировок</small><b>${sessions}<span> из 80</span></b></div>
+    <div class="kpi"><small>Тренировок</small><b>${sessions}<span> из 80</span></b><span class="sub">пропусков: ${sched().skips.size}</span></div>
     <div class="kpi"><small>Лучшая неделя</small><b>${best?fmt(best/1000,1):"–"}<span>${best?" т":""}</span></b></div></div>`;
   // chart
   const W=340,H=170,L=30,R=6,T=10,B=22,cw=(W-L-R)/WEEKS;
@@ -666,7 +740,7 @@ view.addEventListener("click",e=>{
     if(b.dataset.act==="wsave")saveWeight();
     if(b.dataset.act==="restore")$("#restoreFile").click();
     if(b.dataset.act==="wipe"){
-      if(b.dataset.arm){S.weeks={};scheduleSave();delete b.dataset.arm;render();toast("Все записи удалены")}
+      if(b.dataset.arm){S.weeks={};S.done={};scheduleSave();delete b.dataset.arm;render();toast("Все записи удалены")}
       else{b.dataset.arm="1";b.textContent="Точно удалить? Нажми ещё раз";b.style.borderColor="var(--danger)";b.style.color="var(--danger)";
         setTimeout(()=>{if(b.isConnected&&b.dataset.arm){delete b.dataset.arm;b.textContent="Удалить все записи";b.style.borderColor="";b.style.color=""}},4000)}
     }
@@ -679,17 +753,24 @@ view.addEventListener("input",e=>{const t=e.target;
   else if(t.dataset.name){const id=t.dataset.name,v=t.value.trim();S.settings.names=Object.assign({},S.settings.names);if(!v||v===EX[id][0])delete S.settings.names[id];else S.settings.names[id]=v;t.classList.toggle("changed",!!S.settings.names[id]);scheduleSave("settings")}
 });
 view.addEventListener("change",e=>{const t=e.target;
+  if(t.dataset.done!==undefined){if(/^\d{4}-\d{2}-\d{2}$/.test(t.value)){S.done[sessKey(S.w,S.d)]=t.value;scheduleSave();render();toast("Дата выполнения: "+dm(isoToDate(t.value)))}return}
   if(t.id==="restoreFile"&&t.files&&t.files[0]){importBackup(t.files[0]);t.value="";return}
   if(t.dataset.bwf){const id=t.dataset.bwf;S.settings.bwf=Object.assign({},S.settings.bwf);if(t.checked===!!EX[id][1])delete S.settings.bwf[id];else S.settings.bwf[id]=t.checked?1:0;scheduleSave("settings")}
   if(t.dataset.set==="start"&&!t.value){S.settings.start=DEF_SET.start;scheduleSave("settings")}
 });
 function refreshHint(){const h=view.querySelector(".form .hint.full");if(h)h.firstChild.textContent="Сейчас круги в адаптации: "+[1,2,3,4].map(circuits).join(" → ")+". "}
 function setEntry(id,e){
-  const w=S.w;S.weeks[w]=S.weeks[w]||{entries:{}};
+  const w=S.w,wasDone=sessFilled(w,S.d),cur=sched().a[(w-1)*4+S.d].date;
+  S.weeks[w]=S.weeks[w]||{entries:{}};
   const entries=Object.assign({},S.weeks[w].entries);
   const clean={};["w","s","r"].forEach(k=>{const v=num(e[k]);if(v!=null)clean[k]=v});if(e.n&&String(e.n).trim())clean.n=String(e.n).slice(0,300);
   if(Object.keys(clean).length)entries[key(S.d,id)]=clean;else delete entries[key(S.d,id)];
-  S.weeks[w]={entries};scheduleSave(wid(w));
+  S.weeks[w]={entries};
+  const sk=sessKey(w,S.d),nowDone=sessFilled(w,S.d),t=isoDay(new Date());
+  if(nowDone&&!S.done[sk])S.done[sk]=cur<t?cur:t;
+  if(!nowDone)delete S.done[sk];
+  scheduleSave(wid(w));
+  if(nowDone!==wasDone)softRender();
 }
 function onField(inp){
   const card=inp.closest("[data-ex]"),id=card.dataset.ex;
@@ -735,7 +816,7 @@ function csvText(){
   const nr=v=>v==null?"":String(v).replace(".",",");
   const lines=[["Неделя","Дата","День","Период","Упражнение","Вес, кг","Подходы","Повторы","Тоннаж, кг","Заметка"].join(";")];
   for(let w=1;w<=WEEKS;w++)for(let d=0;d<4;d++)sessionEx(w,d).forEach(x=>{const e=entry(w,d,x.id);if(!e)return;
-    lines.push([w,dmy(dateOf(w,d)),DAYS[d].s,PERIODS[periodOf(w)].n,exName(x.id),nr(e.w),nr(e.s),nr(e.r),nr(ton(e,x.id,w,d)),e.n||""].map(q).join(";"))});
+    lines.push([w,dmy(dateOf(w,d)),WD[dateOf(w,d).getDay()],PERIODS[periodOf(w)].n,exName(x.id),nr(e.w),nr(e.s),nr(e.r),nr(ton(e,x.id,w,d)),e.n||""].map(q).join(";"))});
   return lines;
 }
 async function exportCsv(){
@@ -744,7 +825,7 @@ async function exportCsv(){
 }
 async function exportBackup(){
   const today=new Date();
-  const body=JSON.stringify({app:"trainingDiary",v:1,exported:today.toISOString(),settings:S.settings,weeks:S.weeks,body:S.body},null,1);
+  const body=JSON.stringify({app:"trainingDiary",v:1,exported:today.toISOString(),settings:S.settings,weeks:S.weeks,body:S.body,done:S.done},null,1);
   const ok=await shareFile("Дневник_копия_"+isoDay(today)+".json",body,"application/json");
   if(ok){try{localStorage.setItem(BK,today.toISOString())}catch(e){}if(S.tab==="settings")render();toast("Копия готова — сохрани её в «Файлы»")}
 }
@@ -755,7 +836,7 @@ function importBackup(file){
     if(!j||j.app!=="trainingDiary"||typeof j.weeks!=="object"){toast("Это не файл копии дневника");return}
     S.settings=Object.assign(JSON.parse(JSON.stringify(DEF_SET)),j.settings||{});
     const wk={};Object.keys(j.weeks||{}).forEach(k=>{const n=+k;if(n>=1&&n<=WEEKS&&j.weeks[k]&&typeof j.weeks[k].entries==="object")wk[n]={entries:j.weeks[k].entries}});
-    S.weeks=wk;if(Array.isArray(j.body))S.body=cleanBody(j.body);scheduleSave();
+    S.weeks=wk;if(Array.isArray(j.body))S.body=cleanBody(j.body);S.done=cleanDone(j.done);scheduleSave();
     let cnt=0;Object.values(wk).forEach(x=>cnt+=Object.keys(x.entries).length);
     render();toast("Восстановлено: тренировок "+cnt+(Array.isArray(j.body)?", замеров веса "+S.body.length:""));
   };
