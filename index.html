@@ -622,7 +622,6 @@ function exCard(w,d,x,i){
       <div class="fld"><label for="w_${x.id}">${bw?"Доп. вес, кг":"Вес, кг"}</label><input id="w_${x.id}" data-sw inputmode="decimal" autocomplete="off" enterkeyhint="next" placeholder="${pw!=null?fmtIn(pw):"0"}" data-pw="${pw!=null?pw:""}">${bw?`<button type="button" class="sign" data-sign aria-label="Сменить знак">±</button>`:""}</div>
       <div class="fld"><label for="r_${x.id}">Повторы</label><input id="r_${x.id}" data-sr inputmode="numeric" autocomplete="off" enterkeyhint="done" placeholder="${pr_!=null?fmtIn(pr_):"–"}" data-pr="${pr_!=null?pr_:""}"></div>
     </div>
-    <div class="qlbl">Записать подход ${k+1}${target} — как прошёл?</div>
     <div class="qbtns"><button type="button" class="qbtn q1" data-addset="1">Легко</button><button type="button" class="qbtn q2" data-addset="2">Хорошо</button><button type="button" class="qbtn q3" data-addset="3">Тяжело</button></div>
     <div class="ex-f"><div class="ton"><small>Тоннаж${k?" · "+k+" подх.":""}</small><b data-ton>${t==null?"–":fmt(t)+" кг"}</b></div></div>
   </article>`;
