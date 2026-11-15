@@ -27,6 +27,7 @@ img{max-width:100%}
 :root{
   --bg:#EDEFEA; --surface:#FFFFFF; --field:#F4F5F1; --ink:#1A1E22; --muted:#5D656C; --line:#D5D9D2;
   --accent:#1F4FB8; --accent-ink:#FFFFFF; --good:#2B7A4B; --warn:#A86A12; --danger:#B3261E;
+  --q1:#2563C9; --q2:#2B8A4E; --q3:#C8322A; --q-ink:#FFFFFF;
   --p0:#2F8C4C; --p1:#E2B208; --p2:#2357C6; --p3:#CF3A2E; --p4:#30353A;
   --p0-ink:#FFFFFF; --p1-ink:#1A1E22; --p2-ink:#FFFFFF; --p3-ink:#FFFFFF; --p4-ink:#FFFFFF;
   --shadow:0 1px 2px rgba(20,30,40,.06),0 2px 10px rgba(20,30,40,.05);
@@ -36,6 +37,7 @@ img{max-width:100%}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#111315; --surface:#1A1D20; --field:#23272B; --ink:#E7E9E4; --muted:#9BA3AA; --line:#2D3237;
   --accent:#7099F2; --accent-ink:#0E1420; --good:#5DBB82; --warn:#E0A548; --danger:#F08A80;
+  --q1:#5B8CF0; --q2:#4DB477; --q3:#E5584C; --q-ink:#0E1114;
   --p0:#3FA762; --p1:#E9BE22; --p2:#4F7FE0; --p3:#E25446; --p4:#8C959E;
   --p0-ink:#0E1A12; --p1-ink:#1A1E22; --p2-ink:#0E1420; --p3-ink:#1E0E0C; --p4-ink:#111315;
   --shadow:none; color-scheme:dark;
@@ -43,6 +45,7 @@ img{max-width:100%}
 :root[data-theme="dark"]{
   --bg:#111315; --surface:#1A1D20; --field:#23272B; --ink:#E7E9E4; --muted:#9BA3AA; --line:#2D3237;
   --accent:#7099F2; --accent-ink:#0E1420; --good:#5DBB82; --warn:#E0A548; --danger:#F08A80;
+  --q1:#5B8CF0; --q2:#4DB477; --q3:#E5584C; --q-ink:#0E1114;
   --p0:#3FA762; --p1:#E9BE22; --p2:#4F7FE0; --p3:#E25446; --p4:#8C959E;
   --p0-ink:#0E1A12; --p1-ink:#1A1E22; --p2-ink:#0E1420; --p3-ink:#1E0E0C; --p4-ink:#111315;
   --shadow:none; color-scheme:dark;
@@ -228,6 +231,24 @@ h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06
 .addset small{display:block;font-weight:500;font-size:11px;opacity:.85}
 .addset:active{transform:scale(.98)}
 .finish{width:100%;padding:14px;font-size:16px}
+.sets li{grid-template-columns:26px minmax(0,1fr) auto auto 34px}
+.qtag{border:0;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600;background:var(--line);color:var(--muted);white-space:nowrap}
+.qtag.q1,.sn.q1{background:var(--q1);color:var(--q-ink)} .qtag.q2,.sn.q2{background:var(--q2);color:var(--q-ink)} .qtag.q3,.sn.q3{background:var(--q3);color:var(--q-ink)}
+.addrow{grid-template-columns:1fr 1fr}
+.qlbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:-4px}
+.qbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.qbtn{border:0;border-radius:12px;padding:11px 4px;font-weight:700;font-size:15px;color:var(--q-ink)}
+.qbtn.q1{background:var(--q1)} .qbtn.q2{background:var(--q2)} .qbtn.q3{background:var(--q3)}
+.qbtn:active{transform:scale(.97)}
+.lastw{background:var(--field);border-radius:12px;padding:8px 10px}
+.lastw h4{margin:0 0 4px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.lastw table{width:100%;border-collapse:collapse;font-size:14px}
+.lastw td{padding:3px 0;border-top:1px solid var(--line)}
+.lastw tr:first-child td{border-top:0}
+.lastw td.n{width:26px;color:var(--muted)}
+.lastw td.v{font-family:var(--f-display);font-weight:600;font-size:17px}
+.lastw td.q{text-align:right;width:84px}
+.lastw .none{font-size:13px;color:var(--muted)}
 /* backup prompts */
 .bk{background:color-mix(in srgb,var(--warn) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
 .bk span{flex:1 1 160px;min-width:0}
@@ -482,7 +503,7 @@ function migrateWeeks(weeks){
   const num=v=>{if(v===""||v==null)return null;const n=parseFloat(String(v).replace(",",".").replace("−","-"));return isFinite(n)?n:null};
   const out={};Object.keys(weeks||{}).forEach(k=>{const wk=weeks[k];if(!wk||typeof wk.entries!=="object")return;const en={};
     Object.keys(wk.entries).forEach(ek=>{const e=wk.entries[ek]||{};let sets;
-      if(Array.isArray(e.sets))sets=e.sets.map(x=>({w:num(x&&x.w)||0,r:num(x&&x.r)})).filter(x=>x.r!=null&&x.r>0);
+      if(Array.isArray(e.sets))sets=e.sets.map(x=>{const o={w:num(x&&x.w)||0,r:num(x&&x.r)};if(x&&[1,2,3].includes(x.q))o.q=x.q;return o}).filter(x=>x.r!=null&&x.r>0);
       else{const sN=num(e.s),r=num(e.r),w=num(e.w)||0;sets=sN&&r?Array.from({length:Math.min(Math.round(sN),30)},()=>({w,r})):[]}
       const ne={sets};if(e.n&&String(e.n).trim())ne.n=String(e.n).slice(0,300);
       if(sets.length||ne.n)en[ek]=ne});
@@ -552,7 +573,7 @@ function vSession(){
   else if(sa.date!==orig)status=`<span class="st-moved">Перенесена на ${dm(sdt)}</span><span class="hint">по плану было ${dm(isoToDate(orig))} — из-за пропусков</span>`;
   else status=`<span class="hint">Запланирована на ${WDF[sdt.getDay()]}, ${dm(sdt)}</span>`;
   let cards="";
-  if(w<=4)cards+=`<div class="ex warm"><div class="ex-t"><div class="ex-name">Разминка — обязательна всегда</div><div class="note">3 уровня, без разминки к весам не подходим</div></div><a class="vid" href="${WARM}" target="_blank" rel="noopener">▶ видео</a></div>`;
+  if(w<=4)cards+=`<div class="ex warm"><div class="ex-t"><div class="ex-name">Разминка — обязательна всегда</div><div class="note">3 уровня, без разминки к весам не подходим</div></div></div>`;
   ex.forEach((x,i)=>{cards+=exCard(w,d,x,i)});
   return bkBanner()+`<section class="sess-head">
     <div class="weeknav">
@@ -577,33 +598,33 @@ function vSession(){
 }
 const STAGE_FOCUS=(w,d)=>(w<=4?ADAPT[d].focus:STAGE[d].focus)+".";
 
+const QN=["","легко","хорошо","тяжело"];
 function exCard(w,d,x,i){
-  const e=entry(w,d,x.id)||{},ss=setsOf(e),k=ss.length,t=ton(e,x.id,w,d),bw=isBW(x.id),url=EX[x.id][2];
+  const e=entry(w,d,x.id)||{},ss=setsOf(e),k=ss.length,t=ton(e,x.id,w,d),bw=isBW(x.id);
   const pr=prevOf(w,d,x.id),ps=pr?setsOf(pr.e):[],ph=x.plan||{};
   const lastS=k?ss[k-1]:null,ref=ps[k]||ps[ps.length-1]||null;
   const pw=lastS?lastS.w:(ref?ref.w:null), pr_=ref&&ps[k]?ref.r:(lastS?lastS.r:(ph.r??(ref?ref.r:null)));
   const bwOnDay=bw?bwOn(isoDay(dateOf(w,d))):0;
   const wTxt=v=>bw?(num(v)?(v>0?"+":"")+fmtIn(v)+" кг":"свой вес"):fmtIn(v||0)+" кг";
-  const setsH=ss.map((z,j)=>`<li><span class="sn">${j+1}</span><span class="sv">${wTxt(z.w)} × ${fmtIn(z.r)}</span><span class="stn">${fmt(((num(z.w)||0)+bwOnDay)*z.r)} кг</span><button type="button" class="x" data-delset="${j}" aria-label="Удалить подход ${j+1}">×</button></li>`).join("");
+  const setsH=ss.map((z,j)=>`<li><span class="sn ${z.q?"q"+z.q:""}">${j+1}</span><span class="sv">${wTxt(z.w)} × ${fmtIn(z.r)}</span><button type="button" class="qtag ${z.q?"q"+z.q:""}" data-qset="${j}" aria-label="Оценка подхода ${j+1}: ${z.q?QN[z.q]:"нет"}. Нажми, чтобы изменить">${z.q?QN[z.q]:"оценить"}</button><span class="stn">${fmt(((num(z.w)||0)+bwOnDay)*z.r)} кг</span><button type="button" class="x" data-delset="${j}" aria-label="Удалить подход ${j+1}">×</button></li>`).join("");
   const target=ph.s?` из ${ph.s}`:"";
-  const prevTxt=pr?`Прошлый раз (нед. ${pr.w}, ${dm(dateOf(pr.w,pr.d))}): `+ps.map(z=>(bw?(num(z.w)?"+"+fmtIn(z.w):"св"):fmtIn(z.w))+"×"+fmtIn(z.r)).join(", "):"";
+  const lastH=pr?`<div class="lastw"><h4>Прошлая тренировка · ${dm(dateOf(pr.w,pr.d))}</h4><table>${ps.map((z,j)=>`<tr${j===k?' style="font-weight:600"':""}><td class="n">${j+1}</td><td class="v">${wTxt(z.w)} × ${fmtIn(z.r)}</td><td class="q">${z.q?`<span class="qtag q${z.q}">${QN[z.q]}</span>`:""}</td></tr>`).join("")}</table></div>`
+    :`<div class="lastw"><h4>Прошлая тренировка</h4><div class="none">Это упражнение ещё не выполнялось.</div></div>`;
   return `<article class="ex ${k?"done":""}" data-ex="${x.id}" data-i="${i}">
     <div class="ex-h"><span class="ex-n">${i+1}</span><div class="ex-t">
       <div class="ex-name">${x.fin?"Финишер: ":""}${esc(exName(x.id))}</div>
-      <div class="ex-meta"><span class="pill">${esc(x.sch)}</span>${w<=4?`<span class="tag fin">${ph.s} кр.</span>`:""}${x.light&&x.plan?`<span class="tag">−1 подход</span>`:""}${x.fin?`<span class="tag fin">добивка</span>`:""}${bw?`<span class="tag bw">+ вес тела</span>`:""}${url?`<a class="vid" href="${url}" target="_blank" rel="noopener">▶ видео</a>`:""}</div>
+      <div class="ex-meta"><span class="pill">${esc(x.sch)}</span>${w<=4?`<span class="tag fin">${ph.s} кр.</span>`:""}${x.light&&x.plan?`<span class="tag">−1 подход</span>`:""}${x.fin?`<span class="tag fin">добивка</span>`:""}${bw?`<span class="tag bw">+ вес тела</span>`:""}</div>
       ${x.note?`<div class="note">${esc(x.note)}</div>`:""}
     </div></div>
+    ${lastH}
     ${k?`<ol class="sets">${setsH}</ol>`:""}
     <div class="addrow">
       <div class="fld"><label for="w_${x.id}">${bw?"Доп. вес, кг":"Вес, кг"}</label><input id="w_${x.id}" data-sw inputmode="decimal" autocomplete="off" enterkeyhint="next" placeholder="${pw!=null?fmtIn(pw):"0"}" data-pw="${pw!=null?pw:""}">${bw?`<button type="button" class="sign" data-sign aria-label="Сменить знак">±</button>`:""}</div>
       <div class="fld"><label for="r_${x.id}">Повторы</label><input id="r_${x.id}" data-sr inputmode="numeric" autocomplete="off" enterkeyhint="done" placeholder="${pr_!=null?fmtIn(pr_):"–"}" data-pr="${pr_!=null?pr_:""}"></div>
-      <button type="button" class="addset" data-addset>✓ Подход ${k+1}<small>${k?`сделано ${k}${target}`:(ph.s?`план: ${ph.s}`:"записать")}</small></button>
     </div>
-    <input class="notein" id="n_${x.id}" data-f="n" placeholder="Заметка: техника, самочувствие…" value="${esc(e.n||"")}" autocomplete="off">
-    <div class="ex-f">
-      <div class="prev" style="width:auto;flex:1">${prevTxt?esc(prevTxt):(k?"":"Пустое поле — берётся подсказка (серым).")}</div>
-      <div class="ton"><small>Тоннаж${k?" · "+k+" подх.":""}</small><b data-ton>${t==null?"–":fmt(t)+" кг"}</b></div>
-    </div>
+    <div class="qlbl">Записать подход ${k+1}${target} — как прошёл?</div>
+    <div class="qbtns"><button type="button" class="qbtn q1" data-addset="1">Легко</button><button type="button" class="qbtn q2" data-addset="2">Хорошо</button><button type="button" class="qbtn q3" data-addset="3">Тяжело</button></div>
+    <div class="ex-f"><div class="ton"><small>Тоннаж${k?" · "+k+" подх.":""}</small><b data-ton>${t==null?"–":fmt(t)+" кг"}</b></div></div>
   </article>`;
 }
 
@@ -807,7 +828,9 @@ view.addEventListener("click",e=>{
     if(b.dataset.arm){const d=b.dataset.wdel;S.body=S.body.filter(x=>x.d!==d);scheduleSave();render();toast("Запись удалена")}
     else{b.dataset.arm="1";b.textContent="Удалить";setTimeout(()=>{if(b.isConnected&&b.dataset.arm){delete b.dataset.arm;b.textContent="×"}},3000)}
     return}
-  if((b=t.closest("[data-addset]"))){addSet(b.closest("[data-ex]"));return}
+  if((b=t.closest("[data-addset]"))){addSet(b.closest("[data-ex]"),+b.dataset.addset);return}
+  if((b=t.closest("[data-qset]"))){const card=b.closest("[data-ex]"),id=card.dataset.ex,j=+b.dataset.qset;const e0=Object.assign({},entry(S.w,S.d,id)||{});
+    e0.sets=setsOf(e0).map((z,q)=>q===j?Object.assign({},z,{q:((z.q||0)%3)+1}):z);setEntry(id,e0);if(card.isConnected)refreshCard(card);return}
   if((b=t.closest("[data-delset]"))){
     if(b.dataset.arm){const card=b.closest("[data-ex]"),id=card.dataset.ex,j=+b.dataset.delset;const e0=Object.assign({},entry(S.w,S.d,id)||{});
       e0.sets=setsOf(e0).filter((_,q)=>q!==j);setEntry(id,e0);if(card.isConnected)refreshCard(card);toast("Подход удалён")}
@@ -832,7 +855,7 @@ view.addEventListener("click",e=>{
 view.addEventListener("keydown",e=>{const t=e.target;if(e.key!=="Enter")return;
   if(t.id==="wt_kg"){e.preventDefault();saveWeight()}
   else if(t.dataset.sw!==undefined){e.preventDefault();const r=t.closest("[data-ex]").querySelector("[data-sr]");r&&r.focus()}
-  else if(t.dataset.sr!==undefined){e.preventDefault();addSet(t.closest("[data-ex]"))}});
+  else if(t.dataset.sr!==undefined){e.preventDefault();t.blur()}});
 view.addEventListener("input",e=>{const t=e.target;
   if(t.dataset.f)onField(t);
   else if(t.dataset.set){const k=t.dataset.set;S.settings[k]=k==="start"?t.value:(num(t.value));scheduleSave("settings");if(k!=="bw"&&k!=="start")refreshHint()}
@@ -849,7 +872,7 @@ function setEntry(id,e){
   const w=S.w,wasDone=sessFilled(w,S.d),cur=sched().a[(w-1)*4+S.d].date;
   S.weeks[w]=S.weeks[w]||{entries:{}};
   const entries=Object.assign({},S.weeks[w].entries);
-  const clean={sets:setsOf(e).map(x=>({w:num(x.w)||0,r:num(x.r)})).filter(x=>x.r!=null&&x.r>0).slice(0,30)};
+  const clean={sets:setsOf(e).map(x=>{const o={w:num(x.w)||0,r:num(x.r)};if([1,2,3].includes(x.q))o.q=x.q;return o}).filter(x=>x.r!=null&&x.r>0).slice(0,30)};
   if(e.n&&String(e.n).trim())clean.n=String(e.n).slice(0,300);
   if(clean.sets.length||clean.n)entries[key(S.d,id)]=clean;else delete entries[key(S.d,id)];
   S.weeks[w]={entries};
@@ -875,17 +898,16 @@ function refreshCard(card){
   const id=card.dataset.ex,i=+card.dataset.i,x=sessionEx(S.w,S.d).find(z=>z.id===id);if(!x)return;
   const tmp=document.createElement("div");tmp.innerHTML=exCard(S.w,S.d,x,i);card.replaceWith(tmp.firstElementChild);updateSummary();
 }
-function addSet(card){
+function addSet(card,q){
   const id=card.dataset.ex,wi=card.querySelector("[data-sw]"),ri=card.querySelector("[data-sr]");
   let w=num(wi.value);if(w==null)w=num(wi.dataset.pw)||0;
   let r=num(ri.value);if(r==null)r=num(ri.dataset.pr);
   if(r==null||r<=0){toast("Введи количество повторений");ri.focus();return}
-  const e0=Object.assign({},entry(S.w,S.d,id)||{});e0.sets=setsOf(e0).concat([{w,r}]);
-  const nt=card.querySelector("[data-f=n]");if(nt)e0.n=nt.value;
+  const e0=Object.assign({},entry(S.w,S.d,id)||{});e0.sets=setsOf(e0).concat([q?{w,r,q}:{w,r}]);
   if(document.activeElement&&card.contains(document.activeElement))document.activeElement.blur();
   setEntry(id,e0);const n=e0.sets.length;
   if(card.isConnected)refreshCard(card);
-  toast(`Подход ${n}: ${isBW(id)?(w?(w>0?"+":"")+fmtIn(w)+" кг":"свой вес"):fmtIn(w)+" кг"} × ${fmtIn(r)}`);
+  toast(`Подход ${n}: ${isBW(id)?(w?(w>0?"+":"")+fmtIn(w)+" кг":"свой вес"):fmtIn(w)+" кг"} × ${fmtIn(r)}${q?" — "+QN[q]:""}`);
 }
 // re-render after editing ends, if remote data arrived meanwhile
 let pendingRender=false;
@@ -917,10 +939,10 @@ async function shareFile(name,text,mime){
 function csvText(){
   const q=v=>{const s=String(v==null?"":v);return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
   const nr=v=>v==null?"":String(v).replace(".",",");
-  const lines=[["Неделя","Дата","День","Период","Упражнение","Подход","Вес, кг","Повторы","Тоннаж подхода, кг","Заметка"].join(";")];
+  const lines=[["Неделя","Дата","День","Период","Упражнение","Подход","Вес, кг","Повторы","Тоннаж подхода, кг","Оценка"].join(";")];
   for(let w=1;w<=WEEKS;w++)for(let d=0;d<4;d++)sessionEx(w,d).forEach(x=>{const e=entry(w,d,x.id);if(!e)return;
     const bw=isBW(x.id)?bwOn(isoDay(dateOf(w,d))):0;
-    setsOf(e).forEach((z,j)=>lines.push([w,dmy(dateOf(w,d)),WD[dateOf(w,d).getDay()],PERIODS[periodOf(w)].n,exName(x.id),j+1,nr(z.w),nr(z.r),nr(((num(z.w)||0)+bw)*z.r),j===0?(e.n||""):""].map(q).join(";")))});
+    setsOf(e).forEach((z,j)=>lines.push([w,dmy(dateOf(w,d)),WD[dateOf(w,d).getDay()],PERIODS[periodOf(w)].n,exName(x.id),j+1,nr(z.w),nr(z.r),nr(((num(z.w)||0)+bw)*z.r),z.q?QN[z.q]:""].map(q).join(";")))});
   return lines;
 }
 async function exportCsv(){
