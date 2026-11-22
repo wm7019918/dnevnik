@@ -241,7 +241,8 @@ h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06
 .qbtn.q1{background:var(--q1)} .qbtn.q2{background:var(--q2)} .qbtn.q3{background:var(--q3)}
 .qbtn:active{transform:scale(.97)}
 .lastw{background:var(--field);border-radius:12px;padding:8px 10px}
-.lastw h4{margin:0 0 4px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.lastw h4{margin:0 0 4px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:baseline;gap:8px}
+.lastw h4 .pt{margin-left:auto;text-transform:none;letter-spacing:0;font-family:var(--f-display);font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap}
 .lastw table{width:100%;border-collapse:collapse;font-size:14px}
 .lastw td{padding:3px 0;border-top:1px solid var(--line)}
 .lastw tr:first-child td{border-top:0}
@@ -608,7 +609,7 @@ function exCard(w,d,x,i){
   const wTxt=v=>bw?(num(v)?(v>0?"+":"")+fmtIn(v)+" кг":"свой вес"):fmtIn(v||0)+" кг";
   const setsH=ss.map((z,j)=>`<li><span class="sn ${z.q?"q"+z.q:""}">${j+1}</span><span class="sv">${wTxt(z.w)} × ${fmtIn(z.r)}</span><button type="button" class="qtag ${z.q?"q"+z.q:""}" data-qset="${j}" aria-label="Оценка подхода ${j+1}: ${z.q?QN[z.q]:"нет"}. Нажми, чтобы изменить">${z.q?QN[z.q]:"оценить"}</button><span class="stn">${fmt(((num(z.w)||0)+bwOnDay)*z.r)} кг</span><button type="button" class="x" data-delset="${j}" aria-label="Удалить подход ${j+1}">×</button></li>`).join("");
   const target=ph.s?` из ${ph.s}`:"";
-  const lastH=pr?`<div class="lastw"><h4>Прошлая тренировка · ${dm(dateOf(pr.w,pr.d))}</h4><table>${ps.map((z,j)=>`<tr${j===k?' style="font-weight:600"':""}><td class="n">${j+1}</td><td class="v">${wTxt(z.w)} × ${fmtIn(z.r)}</td><td class="q">${z.q?`<span class="qtag q${z.q}">${QN[z.q]}</span>`:""}</td></tr>`).join("")}</table></div>`
+  const lastH=pr?`<div class="lastw"><h4><span>Прошлая тренировка · ${dm(dateOf(pr.w,pr.d))}</span><span class="pt">${fmt(ton(pr.e,x.id,pr.w,pr.d)||0)} кг</span></h4><table>${ps.map((z,j)=>`<tr${j===k?' style="font-weight:600"':""}><td class="n">${j+1}</td><td class="v">${wTxt(z.w)} × ${fmtIn(z.r)}</td><td class="q">${z.q?`<span class="qtag q${z.q}">${QN[z.q]}</span>`:""}</td></tr>`).join("")}</table></div>`
     :`<div class="lastw"><h4>Прошлая тренировка</h4><div class="none">Это упражнение ещё не выполнялось.</div></div>`;
   return `<article class="ex ${k?"done":""}" data-ex="${x.id}" data-i="${i}">
     <div class="ex-h"><span class="ex-n">${i+1}</span><div class="ex-t">
