@@ -1,7 +1,7 @@
 // Дневник тренировок — офлайн-кэш. Меняй VERSION при обновлении файлов.
-const VERSION = "dnevnik-v9";
+const VERSION = "dnevnik-v10";
 const SHELL = ["./", "index.html", "manifest.webmanifest",
-  "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
+  "icons/icon2-apple-touch.png", "icons/icon2-192.png", "icons/icon2-512.png", "icons/icon2-maskable-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
