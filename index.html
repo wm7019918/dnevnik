@@ -107,6 +107,16 @@ main .wrap{padding-block:14px;display:flex;flex-direction:column;gap:14px}
 .summary .cnt{text-align:right}
 .summary .mode{grid-column:1/-1;font-size:13px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
 .summary .mode strong{color:var(--ink);font-weight:600}
+.tmr{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:10px;margin-top:6px}
+.tmr .clk{font-family:var(--f-display);font-weight:700;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.tmr .clk.run{color:var(--accent)}
+.tmr .lbl{font-size:12px;color:var(--muted)}
+.tmr .btn{margin-left:auto}
+.tstart{background:var(--good);border-color:var(--good);color:#fff;font-size:16px;padding:10px 18px}
+.runchip{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-family:var(--f-display);font-weight:700;font-size:14px;padding:3px 10px;font-variant-numeric:tabular-nums}
+.runchip i{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.runchip i{animation:none}}
 .bar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--field);overflow:hidden;margin-top:6px}
 .bar i{display:block;height:100%;background:var(--good);border-radius:3px;transition:width .3s}
 
@@ -350,7 +360,7 @@ h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06
 
 <header class="top"><div class="wrap">
   <span class="brand">Дневник</span>
-  <span id="periodChip"></span>
+  <span id="periodChip"></span><span id="runChip"></span>
   <span class="sync" id="sync"><i></i><span>загрузка…</span></span>
 </div></header>
 
@@ -379,7 +389,7 @@ h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06
 </div></div>
 <div class="sheet" id="bksheet" hidden><div class="wrap"><div class="sheet-in" role="dialog" aria-labelledby="bkT">
   <h3 id="bkT">✓ Тренировка завершена</h3>
-  <div><span class="big" id="bkTon">0</span> <span class="hint">кг тоннаж</span></div>
+  <div><span class="big" id="bkTon">0</span> <span class="hint">кг тоннаж</span><span id="bkTimeW" hidden> · <span class="big" id="bkTime" style="font-size:24px">0:00</span> <span class="hint">время</span></span></div>
   <p class="hint">Сохрани копию: «Сохранить в Файлы» → папка (например, iCloud Drive / Дневник) → «Сохранить». В следующий раз iOS откроет ту же папку.</p>
   <div class="btnrow"><button type="button" class="btn prim" data-sheet="save">Сохранить копию</button><button type="button" class="btn" data-sheet="later">Позже</button></div>
 </div></div></div>
@@ -448,7 +458,7 @@ const WARM=YT("0qhvu59LkW0");
 const DEF_SET={start:"2026-10-05",days:[2,4,6,0],bw:null,c0:2,cInc:1,cMax:4,r12:20,r34:15,names:{},bwf:{}};
 
 /* ============ STATE ============ */
-const S={settings:JSON.parse(JSON.stringify(DEF_SET)),weeks:{},body:[],done:{},extra:{},open:{},wr:90,tab:"session",w:1,d:0,mode:"init"};
+const S={settings:JSON.parse(JSON.stringify(DEF_SET)),weeks:{},body:[],done:{},extra:{},times:{},open:{},wr:90,tab:"session",w:1,d:0,mode:"init"};
 const LS="trainingDiary.app.v1";
 function lsLoad(){
   let raw=null,j=null;try{raw=localStorage.getItem(LS);j=JSON.parse(raw||"null")}catch(e){}
@@ -460,8 +470,10 @@ function lsLoad(){
   try{S.body=cleanBody(j.body)}catch(e){}
   try{S.done=cleanDone(j.done)}catch(e){}
   try{S.extra=cleanExtra(j.extra)}catch(e){}
+  try{S.times=cleanTimes(j.times)}catch(e){}
 }
-function lsSave(){try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body,done:S.done,extra:S.extra}))}catch(e){}}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body,done:S.done,extra:S.extra,times:S.times}))}catch(e){}}
+function cleanTimes(o){const r={};if(o&&typeof o==="object")Object.keys(o).forEach(k=>{const v=o[k];if(/^\d+_\d$/.test(k)&&v&&isFinite(+v.start)&&+v.start>0){const x={start:+v.start};if(isFinite(+v.end)&&+v.end>=+v.start)x.end=+v.end;r[k]=x}});return r}
 function cleanExtra(o){const r={};if(o&&typeof o==="object")Object.keys(o).forEach(k=>{if(/^\d+_\d$/.test(k)&&Array.isArray(o[k])){const a=[...new Set(o[k].filter(x=>typeof x==="string"&&x.length<40))];if(a.length)r[k]=a}});return r}
 function cleanDone(o){const r={};if(o&&typeof o==="object")Object.keys(o).forEach(k=>{if(/^\d+_\d$/.test(k)&&/^\d{4}-\d{2}-\d{2}$/.test(o[k]))r[k]=o[k]});return r}
 function cleanBody(a){if(!Array.isArray(a))return [];const m={};a.forEach(x=>{if(x&&/^\d{4}-\d{2}-\d{2}$/.test(x.d)&&isFinite(+x.kg)&&+x.kg>0)m[x.d]=+x.kg});return Object.keys(m).sort().map(d=>({d,kg:m[d]}))}
@@ -586,7 +598,7 @@ function bkBanner(){if(!needBackup())return "";const lb=lastBackup();
 function scheduleSave(){
   try{localStorage.setItem(LC,new Date().toISOString())}catch(e){}
   SCH=null;
-  try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body,done:S.done,extra:S.extra}));lastSaveOk=true}
+  try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,weeks:S.weeks,body:S.body,done:S.done,extra:S.extra,times:S.times}));lastSaveOk=true}
   catch(e){lastSaveOk=false;toast("Не удалось сохранить: память браузера недоступна")}
   setSync();
 }
@@ -604,6 +616,7 @@ function render(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===S.tab?"page":"false"));
   const p=periodOf(S.w);
   $("#periodChip").innerHTML=S.tab==="session"?plate(p):"";
+  renderRunChip();
   const v=$("#view");
   if(S.tab==="session")v.innerHTML=vSession();
   else if(S.tab==="plan")v.innerHTML=vPlan();
@@ -645,6 +658,7 @@ function vSession(){
     <div class="cnt"><div class="lbl">Упражнений</div><div class="big num" id="sumN" style="font-size:28px">${st.n}/${st.of}</div></div>
     <div class="bar"><i id="sumBar" style="width:${Math.round(st.n/st.of*100)}%"></i></div>
     <div class="status">${status}</div>
+    ${timerHtml(w,d)}
     <div class="mode">${p===0?"":`<strong>${PERIODS[p].n}.</strong> `}${STAGE_FOCUS(w,d)} ${mode}</div>
   </section>
   ${cards}
@@ -831,10 +845,10 @@ function workoutsTable(){
   if(!list.length)return `<section class="card"><h2>Тренировки</h2><p class="hint">Пока нет выполненных тренировок. Каждая записанная тренировка появится здесь строкой.</p></section>`;
   const rows=list.slice().reverse().map(o=>{const dt=isoToDate(o.date),op=!!S.open[o.k],p=periodOf(o.w);
     const det=o.ex.map(({x,e})=>{const bw=isBW(x.id);return `<div class="wdl"><b>${esc(exName(x.id))}</b><span class="t">${fmt(ton(e,x.id,o.w,o.d)||0)} кг</span><span style="grid-column:1/-1">${setsOf(e).map(z=>(bw?(num(z.w)?(z.w>0?"+":"")+fmtIn(z.w):"св"):fmtIn(z.w))+"×"+fmtIn(z.r)).join(" · ")}</span></div>`}).join("");
-    return `<tr class="wr ${op?"open":""}" data-wrow="${o.k}"><td>${dm(dt)}<span class="dd">${WD[dt.getDay()]}</span></td><td><span class="pd" style="background:var(--p${p})"></span>${o.w}·${o.d+1}</td><td class="tn">${fmt(o.t)}</td><td class="${o.delta==null?"":o.delta>=0?"up":"dn"}">${o.delta==null?"–":fsign(o.delta,0)+"%"}${o.prev?`<span class="dd">к ${o.prev.w}·${o.prev.d+1}</span>`:""}</td></tr>
-      <tr class="wd" data-wdet="${o.k}" ${op?"":"hidden"}><td colspan="4">${det}<div style="margin-top:6px"><button type="button" class="chip" data-go="${o.w}_${o.d}">Открыть тренировку</button></div></td></tr>`}).join("");
-  return `<section class="card"><h2>Тренировки</h2><p class="hint" style="margin-bottom:8px">Нажми на строку — откроются упражнения и подходы. Δ — насколько тоннаж больше или меньше, чем на прошлой такой же тренировке: 2·1 сравнивается с 1·1, 3·2 — с 2·2 (под Δ указано, с какой).</p>
-    <div class="wt"><table class="wtab"><thead><tr><th>Дата</th><th>Тренировка</th><th>Тоннаж, кг</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    return `<tr class="wr ${op?"open":""}" data-wrow="${o.k}"><td>${dm(dt)}<span class="dd">${WD[dt.getDay()]}</span></td><td><span class="pd" style="background:var(--p${p})"></span>${o.w}·${o.d+1}</td><td>${tOf(o.w,o.d)&&tOf(o.w,o.d).end?fdur(durOf(tOf(o.w,o.d))):"–"}</td><td class="tn">${fmt(o.t)}</td><td class="${o.delta==null?"":o.delta>=0?"up":"dn"}">${o.delta==null?"–":fsign(o.delta,0)+"%"}${o.prev?`<span class="dd">к ${o.prev.w}·${o.prev.d+1}</span>`:""}</td></tr>
+      <tr class="wd" data-wdet="${o.k}" ${op?"":"hidden"}><td colspan="5">${det}<div style="margin-top:6px"><button type="button" class="chip" data-go="${o.w}_${o.d}">Открыть тренировку</button></div></td></tr>`}).join("");
+  return `<section class="card"><h2>Тренировки</h2><p class="hint" style="margin-bottom:8px">Время — от «Старт» до «Завершить тренировку» (ч:мм). Нажми на строку — откроются упражнения и подходы. Δ — насколько тоннаж больше или меньше, чем на прошлой такой же тренировке: 2·1 сравнивается с 1·1, 3·2 — с 2·2 (под Δ указано, с какой).</p>
+    <div class="wt"><table class="wtab"><thead><tr><th>Дата</th><th>Тр.</th><th>Время</th><th>Тоннаж, кг</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function niceStep(m){const raw=m/4,p=Math.pow(10,Math.floor(Math.log10(raw)));const f=raw/p;return (f<=1?1:f<=2?2:f<=5?5:10)*p}
 function spark(vals){
@@ -893,6 +907,7 @@ function vSettings(){
 }
 
 /* ============ EVENTS ============ */
+document.querySelector(".top").addEventListener("click",e=>{if(e.target.closest("[data-gorun]")){const r=running();if(r){S.w=r.w;S.d=r.d;S.tab="session";render();window.scrollTo(0,0)}}});
 document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(!b)return;S.tab=b.dataset.tab;render();window.scrollTo(0,0)});
 const view=$("#view");
 view.addEventListener("click",e=>{
@@ -942,7 +957,17 @@ view.addEventListener("click",e=>{
     if(b.dataset.act==="backup")exportBackup();
     if(b.dataset.act==="wsave")saveWeight();
     if(b.dataset.act==="bklater"){S.snooze=lastChange();render()}
-    if(b.dataset.act==="finish"){const st=sessStat(S.w,S.d);if(!st.n){toast("Внеси хотя бы один подход");return}showDoneSheet(st.t)}
+    if(b.dataset.act==="tstart"){const r=running();
+      if(r&&!(r.w===S.w&&r.d===S.d)){toast(`Уже идёт тренировка ${r.w}·${r.d+1} — сначала заверши её`);return}
+      S.times[tKey(S.w,S.d)]={start:Date.now()};scheduleSave();render();toast("Таймер запущен");return}
+    if(b.dataset.act==="treset"){
+      if(b.dataset.arm){delete S.times[tKey(S.w,S.d)];scheduleSave();render();toast("Время сброшено")}
+      else{b.dataset.arm="1";b.textContent="Точно сбросить?";setTimeout(()=>{if(b.isConnected&&b.dataset.arm){delete b.dataset.arm;b.textContent="Сбросить"}},3000)}
+      return}
+    if(b.dataset.act==="finish"){const st=sessStat(S.w,S.d),x=tOf(S.w,S.d);
+      if(x&&!x.end){x.end=Date.now();scheduleSave();render()}
+      if(!st.n){toast(x?"Таймер остановлен. Подходов не записано":"Внеси хотя бы один подход");return}
+      showDoneSheet(st.t,x?durOf(x):0)}
     if(b.dataset.act==="restore")$("#restoreFile").click();
     if(b.dataset.act==="wipe"){
       if(b.dataset.arm){S.weeks={};S.done={};scheduleSave();delete b.dataset.arm;render();toast("Все записи удалены")}
@@ -982,7 +1007,21 @@ function setEntry(id,e){
   scheduleSave(wid(w));
   if(nowDone!==wasDone)softRender();
 }
-function showDoneSheet(t){$("#bkTon").textContent=fmt(t);$("#bksheet").hidden=false}
+function showDoneSheet(t,ms){$("#bkTon").textContent=fmt(t);$("#bkTimeW").hidden=!ms;if(ms)$("#bkTime").textContent=fdur(ms,true);$("#bksheet").hidden=false}
+/* ============ WORKOUT TIMER ============ */
+const tKey=(w,d)=>w+"_"+d;
+const tOf=(w,d)=>S.times[tKey(w,d)]||null;
+const durOf=x=>x?((x.end||Date.now())-x.start):0;
+function fdur(ms,sec){const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return sec?(h+":"+pad(m)+":"+pad(ss)):(h+":"+pad(m))}
+function running(){for(const k in S.times){if(!S.times[k].end){const[w,d]=k.split("_").map(Number);return{w,d,x:S.times[k]}}}return null}
+function renderRunChip(){const r=running(),el=$("#runChip");if(!el)return;
+  el.innerHTML=r&&!(S.tab==="session"&&S.w===r.w&&S.d===r.d)?`<button type="button" class="runchip" data-gorun aria-label="Идёт тренировка ${r.w}·${r.d+1}, открыть"><i></i><span data-clock="${tKey(r.w,r.d)}">${fdur(durOf(r.x),true)}</span></button>`:""}
+function timerHtml(w,d){const x=tOf(w,d),k=tKey(w,d);
+  if(!x)return `<div class="tmr"><span class="clk">0:00:00</span><span class="lbl">время тренировки</span><button type="button" class="btn tstart" data-act="tstart">▶ Старт</button></div>`;
+  if(!x.end)return `<div class="tmr"><span class="clk run" data-clock="${k}">${fdur(durOf(x),true)}</span><span class="lbl">идёт с ${pad(new Date(x.start).getHours())}:${pad(new Date(x.start).getMinutes())}<br>остановится по «Завершить тренировку»</span></div>`;
+  return `<div class="tmr"><span class="clk">${fdur(durOf(x),true)}</span><span class="lbl">время тренировки</span><button type="button" class="btn" data-act="treset" style="font-size:12px;padding:6px 10px">Сбросить</button></div>`;
+}
+setInterval(()=>{document.querySelectorAll("[data-clock]").forEach(el=>{const x=S.times[el.dataset.clock];if(x)el.textContent=fdur(durOf(x),true)})},1000);
 document.getElementById("bksheet").addEventListener("click",e=>{const b=e.target.closest("[data-sheet]");if(!b)return;
   if(b.dataset.sheet==="save")exportBackup();else{$("#bksheet").hidden=true;S.snooze=lastChange();softRender()}});
 function onField(inp){
@@ -1051,7 +1090,7 @@ async function exportCsv(){
 }
 async function exportBackup(){
   const today=new Date();
-  const body=JSON.stringify({app:"trainingDiary",v:2,exported:today.toISOString(),settings:S.settings,weeks:S.weeks,body:S.body,done:S.done,extra:S.extra},null,1);
+  const body=JSON.stringify({app:"trainingDiary",v:2,exported:today.toISOString(),settings:S.settings,weeks:S.weeks,body:S.body,done:S.done,extra:S.extra,times:S.times},null,1);
   const ok=await shareFile("Дневник_копия_"+isoDay(today)+".json",body,"application/json");
   if(ok){try{localStorage.setItem(BK,new Date().toISOString())}catch(e){}$("#bksheet").hidden=true;softRender();toast("Копия сохранена")}
 }
@@ -1062,7 +1101,7 @@ function importBackup(file){
     if(!j||j.app!=="trainingDiary"||typeof j.weeks!=="object"){toast("Это не файл копии дневника");return}
     S.settings=Object.assign(JSON.parse(JSON.stringify(DEF_SET)),j.settings||{});
     const wk={};Object.keys(j.weeks||{}).forEach(k=>{const n=+k;if(n>=1&&n<=WEEKS&&j.weeks[k]&&typeof j.weeks[k].entries==="object")wk[n]={entries:j.weeks[k].entries}});
-    S.weeks=migrateWeeks(wk);if(Array.isArray(j.body))S.body=cleanBody(j.body);S.done=cleanDone(j.done);S.extra=cleanExtra(j.extra);scheduleSave();
+    S.weeks=migrateWeeks(wk);if(Array.isArray(j.body))S.body=cleanBody(j.body);S.done=cleanDone(j.done);S.extra=cleanExtra(j.extra);S.times=cleanTimes(j.times);scheduleSave();
     let cnt=0;Object.values(S.weeks).forEach(x=>cnt+=Object.keys(x.entries).length);
     render();toast("Восстановлено: тренировок "+cnt+(Array.isArray(j.body)?", замеров веса "+S.body.length:""));
   };
