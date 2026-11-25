@@ -112,7 +112,7 @@ main .wrap{padding-block:14px;display:flex;flex-direction:column;gap:14px}
 .tmr .clk.run{color:var(--accent)}
 .tmr .lbl{font-size:12px;color:var(--muted)}
 .tmr .btn{margin-left:auto}
-.tstart{background:var(--good);border-color:var(--good);color:#fff;font-size:16px;padding:10px 18px}
+.btn.tstart{background:var(--q2);border-color:var(--q2);color:var(--q-ink);font-size:16px;font-weight:700;padding:10px 18px}
 .runchip{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-family:var(--f-display);font-weight:700;font-size:14px;padding:3px 10px;font-variant-numeric:tabular-nums}
 .runchip i{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 1.2s infinite}
 @keyframes blink{50%{opacity:.25}}
@@ -631,7 +631,7 @@ function vSession(){
   const w=S.w,d=S.d,ex=sessionEx(w,d),st=sessStat(w,d),p=periodOf(w);
   const todayIso=isoDay(new Date());
   let mode;
-  if(w<=4)mode=`<strong>по ${adaptReps(w)} повторений · ${circuits(w)} круга по плану.</strong> Упражнения подряд, отдых 60–90 с; между кругами 3–5 мин. Каждый круг — отдельный подход: внеси вес и повторы и нажми «✓ Подход».`;
+  if(w<=4)mode=`<strong>по ${adaptReps(w)} повторений · ${circuits(w)} круга по плану.</strong> Упражнения подряд, отдых 60–90 с; между кругами 3–5 мин. Каждый круг — отдельный подход: внеси вес и повторы и нажми «Легко», «Хорошо» или «Тяжело».`;
   else{const wi=(w-5)%4+1;mode=`Неделя ${wi} из 4 в этапе: <strong>${wi%2===0?"без последнего подхода":"как написано"}</strong>.`+(wi%2===0?" В плане уже на 1 подход меньше.":"")}
   const daysH=DAYS.map((dd,i)=>{const s=sessStat(w,i),dt=dateOf(w,i);
     return `<button type="button" data-day="${i}" aria-pressed="${i===d}" aria-label="Тренировка ${i+1}, ${WDF[dt.getDay()]} ${dm(dt)}" class="${isoDay(dt)===todayIso?"today":""}">
