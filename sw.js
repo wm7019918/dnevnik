@@ -1,5 +1,5 @@
 // Дневник тренировок — офлайн-кэш. Меняй VERSION при обновлении файлов.
-const VERSION = "dnevnik-v10";
+const VERSION = "dnevnik-v11";
 const SHELL = ["./", "index.html", "manifest.webmanifest",
   "icons/icon2-apple-touch.png", "icons/icon2-192.png", "icons/icon2-512.png", "icons/icon2-maskable-512.png"];
 
