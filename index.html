@@ -827,14 +827,14 @@ function workoutsTable(){
     let sets=0,q=[0,0,0,0];ex.forEach(o=>setsOf(o.e).forEach(z=>{sets++;if(z.q)q[z.q]++}));
     list.push({k,w,d,date:a[k].date,ex,sets,q,t:sessStat(w,d).t});}
   list.sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:x.k-y.k);
-  list.forEach(o=>{const p=lastByD[o.d];o.delta=p&&p.t>0?(o.t/p.t-1)*100:null;lastByD[o.d]=o});
+  list.forEach(o=>{const p=lastByD[o.d];o.prev=p&&p.t>0?p:null;o.delta=o.prev?(o.t/p.t-1)*100:null;lastByD[o.d]=o});
   if(!list.length)return `<section class="card"><h2>Тренировки</h2><p class="hint">Пока нет выполненных тренировок. Каждая записанная тренировка появится здесь строкой.</p></section>`;
   const rows=list.slice().reverse().map(o=>{const dt=isoToDate(o.date),op=!!S.open[o.k],p=periodOf(o.w);
     const det=o.ex.map(({x,e})=>{const bw=isBW(x.id);return `<div class="wdl"><b>${esc(exName(x.id))}</b><span class="t">${fmt(ton(e,x.id,o.w,o.d)||0)} кг</span><span style="grid-column:1/-1">${setsOf(e).map(z=>(bw?(num(z.w)?(z.w>0?"+":"")+fmtIn(z.w):"св"):fmtIn(z.w))+"×"+fmtIn(z.r)).join(" · ")}</span></div>`}).join("");
-    return `<tr class="wr ${op?"open":""}" data-wrow="${o.k}"><td>${dm(dt)}<span class="dd">${WD[dt.getDay()]}</span></td><td><span class="pd" style="background:var(--p${p})"></span>${o.w}·${o.d+1}</td><td>${o.ex.length}</td><td>${o.sets}</td><td class="tn">${fmt(o.t)}</td><td class="${o.delta==null?"":o.delta>=0?"up":"dn"}">${o.delta==null?"–":fsign(o.delta,0)+"%"}</td><td>${[1,2,3].map(i=>o.q[i]?`<span class="qc q${i}">${o.q[i]}</span>`:"").join("")||"–"}</td></tr>
-      <tr class="wd" data-wdet="${o.k}" ${op?"":"hidden"}><td colspan="7">${det}<div style="margin-top:6px"><button type="button" class="chip" data-go="${o.w}_${o.d}">Открыть тренировку</button></div></td></tr>`}).join("");
-  return `<section class="card"><h2>Тренировки</h2><p class="hint" style="margin-bottom:8px">Тоннаж в кг. Нажми на строку — откроются упражнения и подходы. Δ — изменение тоннажа к прошлой такой же тренировке (тот же день программы).</p>
-    <div class="wt"><table class="wtab"><thead><tr><th>Дата</th><th>Тр.</th><th>Упр</th><th>Подх</th><th>Тоннаж</th><th>Δ</th><th>Оценки</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    return `<tr class="wr ${op?"open":""}" data-wrow="${o.k}"><td>${dm(dt)}<span class="dd">${WD[dt.getDay()]}</span></td><td><span class="pd" style="background:var(--p${p})"></span>${o.w}·${o.d+1}</td><td class="tn">${fmt(o.t)}</td><td class="${o.delta==null?"":o.delta>=0?"up":"dn"}">${o.delta==null?"–":fsign(o.delta,0)+"%"}${o.prev?`<span class="dd">к ${o.prev.w}·${o.prev.d+1}</span>`:""}</td></tr>
+      <tr class="wd" data-wdet="${o.k}" ${op?"":"hidden"}><td colspan="4">${det}<div style="margin-top:6px"><button type="button" class="chip" data-go="${o.w}_${o.d}">Открыть тренировку</button></div></td></tr>`}).join("");
+  return `<section class="card"><h2>Тренировки</h2><p class="hint" style="margin-bottom:8px">Нажми на строку — откроются упражнения и подходы. Δ — насколько тоннаж больше или меньше, чем на прошлой такой же тренировке: 2·1 сравнивается с 1·1, 3·2 — с 2·2 (под Δ указано, с какой).</p>
+    <div class="wt"><table class="wtab"><thead><tr><th>Дата</th><th>Тренировка</th><th>Тоннаж, кг</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function niceStep(m){const raw=m/4,p=Math.pow(10,Math.floor(Math.log10(raw)));const f=raw/p;return (f<=1?1:f<=2?2:f<=5?5:10)*p}
 function spark(vals){
